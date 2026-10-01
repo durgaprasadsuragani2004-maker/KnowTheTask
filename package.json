@@ -1,0 +1,30 @@
+{
+  "name": "knowthetask",
+  "version": "1.0.0",
+  "description": "KnowTheTask - Full-stack Project & Team Management Platform",
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "db:setup": "cd server && npm run db:setup",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "server": "cd server && npm start",
+    "server:dev": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "dev": "node scripts/startDev.js",
+    "test:phase1": "node scripts/verifyPhase1.js",
+    "test:roles": "node scripts/testRoleVisibility.js",
+    "test:phase2": "node scripts/testPhase2.js",
+    "test:phase3": "node scripts/testPhase3.js",
+    "test:phase4": "node scripts/testPhase4.js"
+  },
+  "keywords": [
+    "project-management",
+    "team-collaboration",
+    "full-stack",
+    "react",
+    "node",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "MIT"
+}
