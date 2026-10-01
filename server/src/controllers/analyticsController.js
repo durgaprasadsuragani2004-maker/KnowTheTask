@@ -429,6 +429,117 @@ async function getDashboardAnalytics(req, res, next) {
   }
 }
 
+/**
+ * GET /api/analytics/workload
+ * Workload breakdown for Project Managers and Team Members
+ */
+async function getWorkloadAnalytics(req, res, next) {
+  try {
+    const userRole = req.user.role;
+    const userId = req.user.id;
+
+    if (userRole === 'TEAM_MEMBER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: Team Members cannot view organization workload analytics.',
+      });
+    }
+
+    if (userRole === 'ADMIN') {
+      // 1. All Project Managers
+      const managersRes = await query(`
+        SELECT 
+          u.id, u.name, u.email, u.is_active, u.role,
+          COUNT(DISTINCT p.id)::int AS projects_count,
+          COUNT(DISTINCT t.id)::int AS tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status != 'COMPLETED' THEN t.id END)::int AS active_tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status = 'COMPLETED' THEN t.id END)::int AS completed_tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status != 'COMPLETED' AND t.deadline < CURRENT_DATE THEN t.id END)::int AS overdue_tasks_count,
+          COUNT(DISTINCT pm.user_id)::int AS team_members_count
+        FROM users u
+        LEFT JOIN projects p ON p.manager_id = u.id
+        LEFT JOIN tasks t ON t.project_id = p.id
+        LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id != u.id
+        WHERE u.role = 'PROJECT_MANAGER'
+        GROUP BY u.id
+        ORDER BY u.name ASC
+      `);
+
+      // 2. All Team Members
+      const membersRes = await query(`
+        SELECT 
+          u.id, u.name, u.email, u.is_active, u.role,
+          COUNT(DISTINCT pm.project_id)::int AS projects_count,
+          COUNT(DISTINCT t.id)::int AS tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status != 'COMPLETED' THEN t.id END)::int AS active_tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status = 'COMPLETED' THEN t.id END)::int AS completed_tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status != 'COMPLETED' AND t.deadline < CURRENT_DATE THEN t.id END)::int AS overdue_tasks_count
+        FROM users u
+        LEFT JOIN project_members pm ON pm.user_id = u.id
+        LEFT JOIN tasks t ON t.assigned_to = u.id
+        WHERE u.role = 'TEAM_MEMBER'
+        GROUP BY u.id
+        ORDER BY u.name ASC
+      `);
+
+      return res.status(200).json({
+        success: true,
+        role: userRole,
+        managers: managersRes.rows,
+        members: membersRes.rows,
+      });
+    }
+
+    if (userRole === 'PROJECT_MANAGER') {
+      // Members on projects managed by this PM
+      const membersRes = await query(`
+        SELECT 
+          u.id, u.name, u.email, u.is_active, u.role,
+          COUNT(DISTINCT pm.project_id)::int AS projects_count,
+          COUNT(DISTINCT t.id)::int AS tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status != 'COMPLETED' THEN t.id END)::int AS active_tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status = 'COMPLETED' THEN t.id END)::int AS completed_tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status != 'COMPLETED' AND t.deadline < CURRENT_DATE THEN t.id END)::int AS overdue_tasks_count
+        FROM users u
+        JOIN project_members pm ON pm.user_id = u.id
+        JOIN projects p ON pm.project_id = p.id
+        LEFT JOIN tasks t ON t.assigned_to = u.id AND t.project_id = p.id
+        WHERE (p.manager_id = $1 OR p.created_by = $1) AND u.role = 'TEAM_MEMBER'
+        GROUP BY u.id
+        ORDER BY u.name ASC
+      `, [userId]);
+
+      // PM's own workload summary
+      const myWorkloadRes = await query(`
+        SELECT 
+          u.id, u.name, u.email, u.is_active, u.role,
+          COUNT(DISTINCT p.id)::int AS projects_count,
+          COUNT(DISTINCT t.id)::int AS tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status != 'COMPLETED' THEN t.id END)::int AS active_tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status = 'COMPLETED' THEN t.id END)::int AS completed_tasks_count,
+          COUNT(DISTINCT CASE WHEN t.status != 'COMPLETED' AND t.deadline < CURRENT_DATE THEN t.id END)::int AS overdue_tasks_count,
+          COUNT(DISTINCT pm.user_id)::int AS team_members_count
+        FROM users u
+        LEFT JOIN projects p ON p.manager_id = u.id
+        LEFT JOIN tasks t ON t.project_id = p.id
+        LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id != u.id
+        WHERE u.id = $1
+        GROUP BY u.id
+      `, [userId]);
+
+      return res.status(200).json({
+        success: true,
+        role: userRole,
+        manager: myWorkloadRes.rows[0] || null,
+        members: membersRes.rows,
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getDashboardAnalytics,
+  getWorkloadAnalytics,
 };

@@ -30,6 +30,21 @@ export function formatStatus(status) {
   }
 }
 
+export function formatPriority(priority) {
+  switch (priority) {
+    case 'LOW':
+      return 'Low';
+    case 'MEDIUM':
+      return 'Medium';
+    case 'HIGH':
+      return 'High';
+    case 'URGENT':
+      return 'Urgent';
+    default:
+      return priority || 'Medium';
+  }
+}
+
 export function formatDate(dateStr) {
   if (!dateStr) return 'N/A';
   const d = new Date(dateStr);

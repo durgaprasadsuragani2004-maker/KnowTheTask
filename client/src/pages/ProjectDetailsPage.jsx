@@ -66,12 +66,12 @@ export default function ProjectDetailsPage() {
 
   const fetchAvailableUsers = async () => {
     try {
-      const res = await userService.getAll();
+      const res = await userService.getAssignable({ role: 'TEAM_MEMBER' });
       if (res.success) {
-        // BUG 2 & 5 & Phase 3: Exclude users already in the project, ONLY show eligible active TEAM_MEMBER users (never Admin, never PM, never inactive)
+        // Exclude users already in the project, ONLY show eligible active TEAM_MEMBER users
         const existingMemberIds = new Set((project?.members || []).map((m) => m.id));
         const filtered = (res.users || []).filter(
-          (u) => u.role === 'TEAM_MEMBER' && !existingMemberIds.has(u.id) && u.is_active !== false
+          (u) => !existingMemberIds.has(u.id)
         );
         setAvailableUsers(filtered);
         if (filtered.length > 0) setSelectedUserId(filtered[0].id);

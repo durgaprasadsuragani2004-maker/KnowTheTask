@@ -99,6 +99,16 @@ export const userService = {
     const response = await api.delete(`/users/${id}`);
     return response.data;
   },
+
+  async getAssignable(params) {
+    const response = await api.get('/users/assignable', { params });
+    return response.data;
+  },
+
+  async getWorkload(id) {
+    const response = await api.get(`/users/${id}/workload`);
+    return response.data;
+  },
 };
 
 export const commentService = {
@@ -155,6 +165,11 @@ export const notificationService = {
 export const analyticsService = {
   async getDashboard() {
     const response = await api.get('/analytics/dashboard');
+    return response.data;
+  },
+
+  async getWorkload() {
+    const response = await api.get('/analytics/workload');
     return response.data;
   },
 };

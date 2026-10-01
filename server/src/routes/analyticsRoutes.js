@@ -6,5 +6,6 @@ const authenticate = require('../middleware/authMiddleware');
 router.use(authenticate);
 
 router.get('/dashboard', analyticsController.getDashboardAnalytics);
+router.get('/workload', analyticsController.getWorkloadAnalytics);
 
 module.exports = router;

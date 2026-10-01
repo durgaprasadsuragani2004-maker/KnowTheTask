@@ -12,6 +12,12 @@ const updateUserValidator = [
   body('email').optional().trim().isEmail().withMessage('Valid email is required.').normalizeEmail(),
   body('role').optional().isIn(['ADMIN', 'PROJECT_MANAGER', 'TEAM_MEMBER']).withMessage('Invalid role.'),
   body('is_active').optional().isBoolean().withMessage('is_active must be a boolean.'),
+  body('password').optional().custom((val) => {
+    if (val && val.trim().length > 0 && val.trim().length < 6) {
+      throw new Error('Password must be at least 6 characters.');
+    }
+    return true;
+  }),
 ];
 
 module.exports = {

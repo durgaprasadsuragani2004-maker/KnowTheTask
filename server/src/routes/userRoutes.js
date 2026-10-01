@@ -9,6 +9,8 @@ const validate = require('../middleware/validatorMiddleware');
 router.use(authenticate);
 
 router.get('/', userController.getAllUsers);
+router.get('/assignable', userController.getAssignableUsers);
+router.get('/:id/workload', userController.getUserWorkload);
 router.get('/:id', userController.getUserById);
 router.post('/', authorizeRoles('ADMIN'), createUserValidator, validate, userController.createUser);
 router.put('/:id', updateUserValidator, validate, userController.updateUser);

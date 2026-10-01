@@ -94,12 +94,12 @@ export default function TasksPage() {
     try {
       const [projRes, userRes] = await Promise.all([
         projectService.getAll(),
-        userService.getAll(),
+        userService.getAssignable({ role: 'TEAM_MEMBER' }),
       ]);
       if (projRes.success) setProjects(projRes.projects || []);
       if (userRes.success) {
-        // Only show Active Team Members in assignee list / filters (Critical Fix Part 1)
-        setUsers((userRes.users || []).filter((u) => u.role === 'TEAM_MEMBER' && u.is_active !== false));
+        // Only show Active Team Members in assignee list / filters
+        setUsers(userRes.users || []);
       }
     } catch (err) {
       console.error(err);
@@ -172,8 +172,11 @@ export default function TasksPage() {
       try {
         const res = await projectService.getById(task.project_id);
         if (res.success && res.project?.members) {
+          // Allow active members + retain currently assigned user even if inactive
           setCurrentProjectMembers(
-            res.project.members.filter((m) => m.role === 'TEAM_MEMBER' && m.is_active !== false)
+            res.project.members.filter(
+              (m) => m.role === 'TEAM_MEMBER' && (m.is_active !== false || m.id === task.assigned_to)
+            )
           );
         }
       } catch (err) {
@@ -776,7 +779,7 @@ export default function TasksPage() {
                     <option value="">Unassigned</option>
                     {currentProjectMembers.map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.name} ({formatRole(m.role)})
+                        {m.name} ({formatRole(m.role)}){m.is_active === false ? ' — Inactive' : ''}
                       </option>
                     ))}
                   </select>

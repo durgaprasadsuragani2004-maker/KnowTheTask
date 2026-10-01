@@ -106,6 +106,19 @@ const swaggerSpec = {
         },
       },
     },
+    '/api/users/assignable': {
+      get: {
+        tags: ['Users'],
+        summary: 'Get Assignable Active Users',
+        description: 'Retrieve active users eligible for project or task assignment (excludes Admins, filters is_active = true).',
+        parameters: [
+          { name: 'role', in: 'query', schema: { type: 'string', enum: ['PROJECT_MANAGER', 'TEAM_MEMBER'] } },
+        ],
+        responses: {
+          200: { description: 'List of assignable active users.' },
+        },
+      },
+    },
     '/api/users/{id}': {
       get: {
         tags: ['Users'],
@@ -117,6 +130,66 @@ const swaggerSpec = {
         responses: {
           200: { description: 'User details found.' },
           404: { description: 'User not found or hidden by role visibility.' },
+        },
+      },
+      put: {
+        tags: ['Users'],
+        summary: 'Update User Profile (Admin Only)',
+        description: 'Admin edit user name, email, role, password, and active status with last-admin and duplicate-email safety guards.',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'Alex Smith' },
+                  email: { type: 'string', example: 'alex@knowthetask.com' },
+                  role: { type: 'string', enum: ['ADMIN', 'PROJECT_MANAGER', 'TEAM_MEMBER'] },
+                  is_active: { type: 'boolean' },
+                  password: { type: 'string', example: 'NewSecret123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'User updated successfully.' },
+          400: { description: 'Validation error, duplicate email, or last-admin guard triggered.' },
+          403: { description: 'Forbidden: Admin only.' },
+          404: { description: 'User not found.' },
+        },
+      },
+      delete: {
+        tags: ['Users'],
+        summary: 'Safe Delete User (Admin Only)',
+        description: 'Permanently deletes user only if they have zero historical project, task, or comment records. Otherwise rejects with explanation.',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          200: { description: 'User permanently deleted.' },
+          400: { description: 'Deletion blocked due to historical project/task records; recommends deactivation.' },
+          403: { description: 'Forbidden: Admin only.' },
+          404: { description: 'User not found.' },
+        },
+      },
+    },
+    '/api/users/{id}/workload': {
+      get: {
+        tags: ['Users'],
+        summary: 'Get User Workload Details',
+        description: 'Retrieve real PostgreSQL workload metrics: assigned projects list, tasks list, and active/completed/overdue counts.',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          200: { description: 'Workload details returned successfully.' },
+          403: { description: 'Forbidden: Non-admins cannot inspect other members.' },
+          404: { description: 'User not found.' },
         },
       },
     },
@@ -531,6 +604,17 @@ const swaggerSpec = {
         description: 'Returns real PostgreSQL project counts, task counts, member counts, deadline breakdowns, and chart data.',
         responses: {
           200: { description: 'Dashboard analytics metrics and chart data.' },
+        },
+      },
+    },
+    '/api/analytics/workload': {
+      get: {
+        tags: ['Analytics'],
+        summary: 'Get Workload Visibility Analytics (Admin & PM)',
+        description: 'Returns real PostgreSQL workload distribution across Project Managers and Team Members. Scoped appropriately for Admin and PM; 403 Forbidden for Team Member.',
+        responses: {
+          200: { description: 'Workload distribution metrics returned.' },
+          403: { description: 'Forbidden: Team Members are unauthorized to view workload analytics.' },
         },
       },
     },

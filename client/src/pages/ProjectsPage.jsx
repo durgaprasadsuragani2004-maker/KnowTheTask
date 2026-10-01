@@ -79,19 +79,23 @@ export default function ProjectsPage() {
     }
   };
 
-  const fetchAssignableUsers = async () => {
+  const fetchAssignableUsers = async (currentManager = null) => {
     try {
-      const res = await userService.getAll();
+      const res = await userService.getAssignable();
       if (res.success) {
-        // CRITICAL FIX (Part 1): Only ACTIVE users can be selected for NEW assignments
-        const activeUsers = (res.users || []).filter((u) => u.role !== 'ADMIN' && u.is_active !== false);
-        const pms = activeUsers.filter((u) => u.role === 'PROJECT_MANAGER');
+        let activeUsers = res.users || [];
+        let pms = activeUsers.filter((u) => u.role === 'PROJECT_MANAGER');
         const members = activeUsers.filter((u) => u.role === 'TEAM_MEMBER');
+
+        // If editing and current manager is inactive, retain them for display
+        if (currentManager && currentManager.id && !pms.some((m) => m.id === currentManager.id)) {
+          pms = [{ ...currentManager, is_active: false }, ...pms];
+        }
 
         setManagers(pms);
         setTeamMembers(members);
 
-        if (pms.length > 0 && !formData.manager_id) {
+        if (pms.length > 0 && !formData.manager_id && !currentManager) {
           if (user?.role === 'PROJECT_MANAGER') {
             setFormData((prev) => ({ ...prev, manager_id: user.id }));
           } else {
@@ -130,12 +134,6 @@ export default function ProjectsPage() {
     setPage(1);
   }, [search, statusFilter, managerFilter, sortOrder]);
 
-  useEffect(() => {
-    if (isModalOpen) {
-      fetchAssignableUsers();
-    }
-  }, [isModalOpen]);
-
   const openCreateModal = () => {
     setIsEditMode(false);
     setEditingProjectId(null);
@@ -150,6 +148,7 @@ export default function ProjectsPage() {
     });
     setFormError('');
     setFieldErrors({});
+    fetchAssignableUsers(null);
     setIsModalOpen(true);
   };
 
@@ -168,6 +167,13 @@ export default function ProjectsPage() {
     });
     setFormError('');
     setFieldErrors({});
+    fetchAssignableUsers({
+      id: project.manager_id,
+      name: project.manager_name,
+      email: project.manager_email,
+      role: 'PROJECT_MANAGER',
+      is_active: project.manager_is_active,
+    });
     setIsModalOpen(true);
   };
 
@@ -528,7 +534,7 @@ export default function ProjectsPage() {
                   <option value="">Select Project Manager</option>
                   {managers.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} ({m.email})
+                      {m.name} ({m.email}){m.is_active === false ? ' — Inactive' : ''}
                     </option>
                   ))}
                 </select>

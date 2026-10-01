@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import useAuth from '../hooks/useAuth';
-import { projectService, taskService, analyticsService } from '../services/dataService';
+import { projectService, taskService, analyticsService, userService } from '../services/dataService';
 import StatCard from '../components/StatCard';
-import { formatRole, formatStatus, formatDate } from '../utils/formatters';
+import { formatRole, formatStatus, formatDate, formatPriority } from '../utils/formatters';
 import {
   FolderKanban,
   CheckSquare,
@@ -18,6 +18,11 @@ import {
   Layers,
   PieChart as PieChartIcon,
   BarChart3,
+  Briefcase,
+  UserCheck,
+  UserX,
+  Eye,
+  X,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -38,9 +43,16 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [workload, setWorkload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  // Workload details modal (Part 17 & 18)
+  const [isWorkloadModalOpen, setIsWorkloadModalOpen] = useState(false);
+  const [workloadUser, setWorkloadUser] = useState(null);
+  const [workloadData, setWorkloadData] = useState(null);
+  const [loadingWorkload, setLoadingWorkload] = useState(false);
 
   const fetchData = useCallback(async (isSilent = false) => {
     try {
@@ -48,15 +60,17 @@ export default function DashboardPage() {
       else setIsRefreshing(true);
       setError(null);
 
-      const [projRes, taskRes, analyticsRes] = await Promise.all([
+      const [projRes, taskRes, analyticsRes, workloadRes] = await Promise.all([
         projectService.getAll(),
         taskService.getAll(),
         analyticsService.getDashboard(),
+        analyticsService.getWorkload().catch(() => ({ success: false })),
       ]);
 
       if (projRes.success) setProjects(projRes.projects || []);
       if (taskRes.success) setTasks(taskRes.tasks || []);
       if (analyticsRes.success) setAnalytics(analyticsRes);
+      if (workloadRes && workloadRes.success) setWorkload(workloadRes);
     } catch (err) {
       setError('Failed to fetch dashboard data from server.');
       console.error('Dashboard fetchData error:', err);
@@ -69,7 +83,6 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
 
-    // Auto-refetch when user switches tabs or refocuses window
     const handleFocus = () => {
       fetchData(true);
     };
@@ -85,6 +98,22 @@ export default function DashboardPage() {
       await fetchData(true);
     } catch (err) {
       alert('Failed to update task status: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const openWorkloadModal = async (u) => {
+    setWorkloadUser(u);
+    setIsWorkloadModalOpen(true);
+    setLoadingWorkload(true);
+    try {
+      const res = await userService.getWorkload(u.id);
+      if (res.success) {
+        setWorkloadData(res);
+      }
+    } catch (err) {
+      console.error('Error fetching workload:', err);
+    } finally {
+      setLoadingWorkload(false);
     }
   };
 
@@ -121,6 +150,10 @@ export default function DashboardPage() {
     upcoming: 0,
     no_deadline: 0,
   };
+
+  const totalOrgUsers = (memberStats.total_members || 0) + (memberStats.total_managers || 0) + 1;
+  const activeOrgUsers = (memberStats.active_members || 0) + (memberStats.active_managers || 0) + 1;
+  const inactiveOrgUsers = (memberStats.inactive_members || 0) + (memberStats.inactive_managers || 0);
 
   const completionRate =
     taskStats.total > 0 ? Math.round((taskStats.completed / taskStats.total) * 100) : 0;
@@ -167,11 +200,11 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-navy-950">Welcome back, {user?.name}</h1>
             <p className="text-sm text-slate-600 mt-1">
               {user?.role === 'ADMIN' &&
-                'Global administrator access: manage projects, users, active validation, and platform metrics.'}
+                'Global administrator oversight: manage organization hierarchy, users, workload, and platform metrics.'}
               {user?.role === 'PROJECT_MANAGER' &&
-                'Authorized project management: assign team members, schedule deliverables, and track velocity.'}
+                'Authorized project management: oversee projects, assign active team members, and monitor delivery workload.'}
               {user?.role === 'TEAM_MEMBER' &&
-                'Individual contributor workspace: track assigned tasks, update completion statuses, and meet deadlines.'}
+                'Individual contributor workspace: view assigned tasks, update completion statuses, and meet deadlines.'}
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -292,7 +325,261 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Deadline & Velocity Breakdown Row (Part 7) */}
+      {/* ADMIN ORGANIZATION OVERVIEW CARDS (Part 19) */}
+      {user?.role === 'ADMIN' && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h2 className="text-base font-bold text-navy-950 flex items-center gap-2">
+                <Users className="w-4 h-4 text-navy-950" />
+                <span>Organization Hierarchy & Resource Summary</span>
+              </h2>
+              <p className="text-xs text-slate-500">Live PostgreSQL organization-level metric breakdown</p>
+            </div>
+            <Link
+              to="/users"
+              className="text-xs font-semibold text-navy-900 hover:underline flex items-center gap-1"
+            >
+              <span>Manage Users</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            {/* Users Breakdown */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="font-bold text-navy-950 text-sm flex items-center justify-between">
+                <span>Total Users</span>
+                <span className="text-base text-navy-950">{totalOrgUsers}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1 text-slate-600">
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span>Active Users</span>
+                  <strong className="text-emerald-700">{activeOrgUsers}</strong>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span>Inactive Users</span>
+                  <strong className="text-rose-600">{inactiveOrgUsers}</strong>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span>Project Managers</span>
+                  <strong className="text-navy-950">{memberStats.total_managers}</strong>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span>Team Members</span>
+                  <strong className="text-navy-950">{memberStats.total_members}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Projects Breakdown */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="font-bold text-navy-950 text-sm flex items-center justify-between">
+                <span>Total Projects</span>
+                <span className="text-base text-navy-950">{projStats.total}</span>
+              </div>
+              <div className="space-y-1 pt-1 text-slate-600">
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span>Active Projects</span>
+                  <strong className="text-blue-700">{projStats.active}</strong>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span>Planning Phase</span>
+                  <strong className="text-purple-700">{projStats.planning}</strong>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span>Completed Projects</span>
+                  <strong className="text-emerald-700">{projStats.completed}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Tasks Breakdown */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="font-bold text-navy-950 text-sm flex items-center justify-between">
+                <span>Total Tasks</span>
+                <span className="text-base text-navy-950">{taskStats.total}</span>
+              </div>
+              <div className="space-y-1 pt-1 text-slate-600">
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span>Active Tasks</span>
+                  <strong className="text-blue-700">{taskStats.in_progress + taskStats.todo + taskStats.review}</strong>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span>Completed Tasks</span>
+                  <strong className="text-emerald-700">{taskStats.completed}</strong>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span>Overdue Tasks</span>
+                  <strong className="text-rose-600">{deadlineStats.overdue}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PROJECT MANAGER WORKLOAD TABLE (Part 15 & 19: Admin view of PM workload) */}
+      {user?.role === 'ADMIN' && workload?.managers && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <h2 className="text-base font-bold text-navy-950 flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-navy-950" />
+                <span>Project Manager Workload</span>
+              </h2>
+              <p className="text-xs text-slate-500">Live project and task allocations per Project Manager</p>
+            </div>
+            <span className="text-xs font-semibold text-slate-500">
+              {workload.managers.length} Managers
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                  <th className="py-2.5 px-3">Manager Name</th>
+                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3 text-center">Projects</th>
+                  <th className="py-2.5 px-3 text-center">Tasks</th>
+                  <th className="py-2.5 px-3 text-center">Active Tasks</th>
+                  <th className="py-2.5 px-3 text-center">Overdue</th>
+                  <th className="py-2.5 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {workload.managers.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="py-6 text-center text-slate-400 italic">No Project Managers registered</td>
+                  </tr>
+                ) : (
+                  workload.managers.map((m) => (
+                    <tr key={m.id} className="hover:bg-slate-50/50">
+                      <td className="py-2.5 px-3 font-semibold text-navy-950">
+                        <div>{m.name}</div>
+                        <div className="text-[11px] text-slate-400 font-normal">{m.email}</div>
+                      </td>
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        {m.is_active ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                            Inactive
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-bold text-navy-950">{m.projects_count}</td>
+                      <td className="py-2.5 px-3 text-center font-bold text-slate-700">{m.tasks_count}</td>
+                      <td className="py-2.5 px-3 text-center text-blue-700 font-bold">{m.active_tasks_count}</td>
+                      <td className="py-2.5 px-3 text-center">
+                        <span className={`font-bold ${m.overdue_tasks_count > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                          {m.overdue_tasks_count}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <button
+                          onClick={() => openWorkloadModal(m)}
+                          className="inline-flex items-center px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-medium text-navy-950 cursor-pointer"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          <span>Details</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TEAM MEMBER WORKLOAD TABLE (Part 16 & 19: Admin and PM view) */}
+      {(user?.role === 'ADMIN' || user?.role === 'PROJECT_MANAGER') && workload?.members && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <h2 className="text-base font-bold text-navy-950 flex items-center gap-2">
+                <Users className="w-4 h-4 text-navy-950" />
+                <span>Team Member Workload</span>
+              </h2>
+              <p className="text-xs text-slate-500">
+                {user?.role === 'ADMIN'
+                  ? 'All organization team members and assigned deliverables'
+                  : 'Team members participating in your managed projects'}
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-slate-500">
+              {workload.members.length} Members
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                  <th className="py-2.5 px-3">Member Name</th>
+                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3 text-center">Projects</th>
+                  <th className="py-2.5 px-3 text-center">Assigned Tasks</th>
+                  <th className="py-2.5 px-3 text-center">Active Tasks</th>
+                  <th className="py-2.5 px-3 text-center">Overdue</th>
+                  <th className="py-2.5 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {workload.members.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="py-6 text-center text-slate-400 italic">No team members assigned</td>
+                  </tr>
+                ) : (
+                  workload.members.map((m) => (
+                    <tr key={m.id} className="hover:bg-slate-50/50">
+                      <td className="py-2.5 px-3 font-semibold text-navy-950">
+                        <div>{m.name}</div>
+                        <div className="text-[11px] text-slate-400 font-normal">{m.email}</div>
+                      </td>
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        {m.is_active ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                            Inactive
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-bold text-navy-950">{m.projects_count}</td>
+                      <td className="py-2.5 px-3 text-center font-bold text-slate-700">{m.tasks_count}</td>
+                      <td className="py-2.5 px-3 text-center text-blue-700 font-bold">{m.active_tasks_count}</td>
+                      <td className="py-2.5 px-3 text-center">
+                        <span className={`font-bold ${m.overdue_tasks_count > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                          {m.overdue_tasks_count}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <button
+                          onClick={() => openWorkloadModal(m)}
+                          className="inline-flex items-center px-2 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-medium text-navy-950 cursor-pointer"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          <span>Details</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Deadline & Velocity Breakdown Row */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
           <div>
@@ -305,12 +592,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          {/* Overdue */}
           <div className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-xl">
             <div className="flex items-center justify-between">
-              <span className="text-rose-700 font-semibold text-[11px] uppercase tracking-wider">
-                Overdue
-              </span>
+              <span className="text-rose-700 font-semibold text-[11px] uppercase tracking-wider">Overdue</span>
               <AlertCircle className="w-4 h-4 text-rose-600" />
             </div>
             <div className="text-2xl font-bold text-rose-900 mt-1">
@@ -319,12 +603,9 @@ export default function DashboardPage() {
             <p className="text-[11px] text-rose-600 mt-0.5">Past deadline & incomplete</p>
           </div>
 
-          {/* Due Soon */}
           <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl">
             <div className="flex items-center justify-between">
-              <span className="text-amber-800 font-semibold text-[11px] uppercase tracking-wider">
-                Due Soon
-              </span>
+              <span className="text-amber-800 font-semibold text-[11px] uppercase tracking-wider">Due Soon</span>
               <Clock className="w-4 h-4 text-amber-600" />
             </div>
             <div className="text-2xl font-bold text-amber-900 mt-1">
@@ -333,12 +614,9 @@ export default function DashboardPage() {
             <p className="text-[11px] text-amber-700 mt-0.5">Due in the next 2 days</p>
           </div>
 
-          {/* Upcoming */}
           <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl">
             <div className="flex items-center justify-between">
-              <span className="text-blue-700 font-semibold text-[11px] uppercase tracking-wider">
-                Upcoming
-              </span>
+              <span className="text-blue-700 font-semibold text-[11px] uppercase tracking-wider">Upcoming</span>
               <Calendar className="w-4 h-4 text-blue-600" />
             </div>
             <div className="text-2xl font-bold text-blue-950 mt-1">
@@ -347,12 +625,9 @@ export default function DashboardPage() {
             <p className="text-[11px] text-blue-600 mt-0.5">Scheduled for future dates</p>
           </div>
 
-          {/* Completed */}
           <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl">
             <div className="flex items-center justify-between">
-              <span className="text-emerald-700 font-semibold text-[11px] uppercase tracking-wider">
-                Completed
-              </span>
+              <span className="text-emerald-700 font-semibold text-[11px] uppercase tracking-wider">Completed</span>
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="text-2xl font-bold text-emerald-950 mt-1">
@@ -363,7 +638,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Analytics Charts Grid (Part 6 & 7) */}
+      {/* Analytics Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tasks by Status Chart */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
@@ -378,13 +653,9 @@ export default function DashboardPage() {
           </div>
           <div className="h-56 w-full pt-2">
             {loading ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                Loading chart...
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">Loading chart...</div>
             ) : taskStats.total === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
-                No tasks available to visualize
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">No tasks available to visualize</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={tasksByStatusData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -418,13 +689,9 @@ export default function DashboardPage() {
           </div>
           <div className="h-56 w-full pt-2">
             {loading ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                Loading chart...
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">Loading chart...</div>
             ) : taskStats.total === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
-                No tasks available to visualize
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">No tasks available to visualize</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={tasksByPriorityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -458,13 +725,9 @@ export default function DashboardPage() {
           </div>
           <div className="h-56 w-full pt-2">
             {loading ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                Loading chart...
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">Loading chart...</div>
             ) : projStats.total === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
-                No projects available to visualize
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">No projects available to visualize</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -486,11 +749,7 @@ export default function DashboardPage() {
                     contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', border: 'none', color: '#fff', fontSize: '11px' }}
                     itemStyle={{ color: '#fff' }}
                   />
-                  <Legend
-                    verticalAlign="bottom"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
-                  />
+                  <Legend verticalAlign="bottom" iconSize={8} wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -581,7 +840,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Interactive Status Changer directly syncs with PATCH /api/tasks/:id/status */}
                   <div className="flex items-center space-x-2">
                     <select
                       value={t.status}
@@ -600,6 +858,180 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* WORKLOAD DETAILS MODAL (Parts 17 & 18) */}
+      {isWorkloadModalOpen && workloadUser && (
+        <div className="fixed inset-0 z-50 bg-navy-950/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-navy-950 flex items-center gap-2">
+                  <span>Workload Details</span>
+                  <span className="text-xs font-normal text-slate-500">— {workloadUser.name}</span>
+                </h2>
+                <p className="text-xs text-slate-500">Objective allocation breakdown</p>
+              </div>
+              <button
+                onClick={() => setIsWorkloadModalOpen(false)}
+                className="text-slate-400 hover:text-navy-950 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {loadingWorkload ? (
+              <div className="py-12 text-center text-xs text-slate-500">Loading workload metrics...</div>
+            ) : workloadData ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-full bg-navy-950 text-white font-bold flex items-center justify-center text-sm">
+                      {workloadUser.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="font-bold text-navy-950 text-sm">{workloadUser.name}</div>
+                      <div className="text-xs text-slate-500">{workloadUser.email}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-white border border-slate-200 text-navy-950">
+                      {formatRole(workloadUser.role)}
+                    </span>
+                    {workloadUser.is_active ? (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase block">Projects</span>
+                    <span className="text-xl font-bold text-navy-950 mt-1 block">
+                      {workloadData.workload.projects_count}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase block">Active Tasks</span>
+                    <span className="text-xl font-bold text-blue-700 mt-1 block">
+                      {workloadData.workload.active_tasks_count}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase block">Completed Tasks</span>
+                    <span className="text-xl font-bold text-emerald-700 mt-1 block">
+                      {workloadData.workload.completed_tasks_count}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase block">Overdue Tasks</span>
+                    <span className={`text-xl font-bold mt-1 block ${
+                      workloadData.workload.overdue_tasks_count > 0 ? 'text-rose-600' : 'text-slate-400'
+                    }`}>
+                      {workloadData.workload.overdue_tasks_count}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-bold text-navy-950 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-navy-950" />
+                    <span>Projects ({workloadData.projects?.length || 0})</span>
+                  </h4>
+                  {workloadData.projects?.length === 0 ? (
+                    <div className="p-3 bg-slate-50 rounded-lg text-xs text-slate-500 text-center">No projects assigned</div>
+                  ) : (
+                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                          <tr>
+                            <th className="py-2 px-3">Project Name</th>
+                            <th className="py-2 px-3">Status</th>
+                            <th className="py-2 px-3 text-right">Deadline</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {workloadData.projects.map((p) => (
+                            <tr key={p.id} className="hover:bg-slate-50/50">
+                              <td className="py-2 px-3 font-semibold text-navy-950">{p.name}</td>
+                              <td className="py-2 px-3">
+                                <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-semibold text-slate-700">
+                                  {formatStatus(p.status)}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-right text-slate-500">{formatDate(p.deadline)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-bold text-navy-950 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <CheckSquare className="w-3.5 h-3.5 text-navy-950" />
+                    <span>Tasks ({workloadData.tasks?.length || 0})</span>
+                  </h4>
+                  {workloadData.tasks?.length === 0 ? (
+                    <div className="p-3 bg-slate-50 rounded-lg text-xs text-slate-500 text-center">No tasks assigned</div>
+                  ) : (
+                    <div className="border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 sticky top-0">
+                          <tr>
+                            <th className="py-2 px-3">Task Title</th>
+                            <th className="py-2 px-3">Project</th>
+                            <th className="py-2 px-3">Priority</th>
+                            <th className="py-2 px-3">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {workloadData.tasks.map((t) => (
+                            <tr key={t.id} className="hover:bg-slate-50/50">
+                              <td className="py-2 px-3 font-medium text-navy-950">{t.title}</td>
+                              <td className="py-2 px-3 text-slate-500">{t.project_name || '—'}</td>
+                              <td className="py-2 px-3">
+                                <span className="text-[10px] font-semibold text-slate-600">{formatPriority(t.priority)}</span>
+                              </td>
+                              <td className="py-2 px-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                  t.status === 'COMPLETED'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : t.status === 'IN_PROGRESS'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {formatStatus(t.status)}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsWorkloadModalOpen(false)}
+                className="px-4 py-2 bg-navy-950 text-white text-xs font-semibold rounded-lg hover:bg-navy-900 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
