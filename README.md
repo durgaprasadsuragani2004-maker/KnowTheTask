@@ -2,39 +2,67 @@
 
 > **Project & Team Management Platform**
 
-KnowTheTask is an enterprise-ready, full-stack project and team management platform built with React.js, Node.js, Express.js, and PostgreSQL. It enforces strict Role-Based Access Control (RBAC), bcrypt password hashing, and verified database role validation at the authentication layer.
+KnowTheTask is an enterprise-grade, full-stack project and team management platform built with React.js, Node.js, Express.js, and PostgreSQL. It enforces strict Role-Based Access Control (RBAC), bcrypt password hashing, and verified database role validation at the authentication layer.
 
 ---
 
 ## Table of Contents
-1. [Project Description](#1-project-description)
-2. [Main Features](#2-main-features)
-3. [User Roles & Permissions](#3-user-roles--permissions)
-4. [Technology Stack](#4-technology-stack)
-5. [Project Structure](#5-project-structure)
-6. [Installation Instructions](#6-installation-instructions)
-7. [Environment Variables](#7-environment-variables)
-8. [Database Setup & Seeding](#8-database-setup--seeding)
-9. [Running the Application](#9-running-the-application)
-10. [API Documentation (Swagger / OpenAPI)](#10-api-documentation-swagger--openapi)
-11. [Testing & Verification](#11-testing--verification)
-12. [Deployment Guidelines](#12-deployment-guidelines)
-13. [Screenshots](#13-screenshots)
-14. [Future Improvements](#14-future-improvements)
-15. [License](#15-license)
+1. [Project Title](#1-project-title)
+2. [Project Description](#2-project-description)
+3. [Problem Statement](#3-problem-statement)
+4. [Objectives](#4-objectives)
+5. [Features](#5-features)
+6. [User Roles & Permissions](#6-user-roles--permissions)
+7. [Technology Stack](#7-technology-stack)
+8. [System Architecture](#8-system-architecture)
+9. [Project Structure](#9-project-structure)
+10. [Database Information](#10-database-information)
+11. [Authentication](#11-authentication)
+12. [API Documentation (Swagger / OpenAPI)](#12-api-documentation-swagger--openapi)
+13. [Installation](#13-installation)
+14. [Environment Variables](#14-environment-variables)
+15. [Database Setup & Seeding](#15-database-setup--seeding)
+16. [Running Locally](#16-running-locally)
+17. [Testing](#17-testing)
+18. [Deployment](#18-deployment)
+19. [Screenshots](#19-screenshots)
+20. [Future Improvements](#20-future-improvements)
 
 ---
 
-## 1. Project Description
+## 1. Project Title
+**KnowTheTask — Full-Stack Project & Team Management Platform**
 
+---
+
+## 2. Project Description
 KnowTheTask simplifies organizational project tracking and team collaboration through a structured, multi-tier management workflow. It eliminates communication silos and unauthorized access by providing tailored dashboards, Kanban task boards, threaded discussions, real-time activity auditing, in-app notifications, and visual analytics for three key user tiers: **Admin**, **Project Manager**, and **Team Member**.
 
 The platform is designed with a **Dark Blue (`#0a192f`) and White (`#ffffff`)** SaaS interface that prioritizes operational clarity, fast navigation, responsive layout across all device viewports, and zero visual clutter.
 
 ---
 
-## 2. Main Features
+## 3. Problem Statement
+Cross-functional teams routinely face critical collaboration bottlenecks:
+- **Fragmented Communication:** Tasks, updates, and discussions are scattered across external chat apps and email chains, leading to lost context.
+- **Unauthorized Data Access:** Without database-enforced Role-Based Access Control (RBAC), unauthorized members can view administrative or confidential project data.
+- **Resource Misallocations:** Offboarded or inactive team members can accidentally be assigned to new customer-critical milestones.
+- **Absence of Auditability:** Teams cannot track who made which status transitions or task changes over time.
+- **Lack of Real-Time Metrics:** Stakeholders lack dynamic visual analytics to assess task completion ratios and deadline risks.
 
+---
+
+## 4. Objectives
+1. **Deliver Modern SaaS Design:** High contrast, responsive typography, and intuitive layouts using Dark Blue and White.
+2. **Enforce Database-Verified Role Security:** Prevent role spoofing via database-verified JWT authentication and server-side RBAC guards across Admin, PM, and Team Member roles.
+3. **Guarantee Inactive User Assignment Integrity:** Ensure deactivated personnel are excluded from all assignment dropdowns and rejected by backend endpoints, while preserving historical assignments with dynamic `🔴 Inactive` badges.
+4. **Provide End-to-End Workflow Management:** Full project CRUD, interactive drag-and-drop Kanban task boards, threaded discussions, and audit logs.
+5. **Real-Time Visual Analytics:** Dynamic charts powered by Recharts (Tasks by Status, Tasks by Priority, Projects Breakdown, and Velocity/Health indicators).
+6. **OpenAPI Standards:** Complete interactive OpenAPI 3.0 / Swagger documentation.
+
+---
+
+## 5. Features
 - **Strict Role-Based Authentication:** Direct role-selection login with backend database verification against spoofing.
 - **Project Lifecycle Management:** Create, update, view, and delete projects with manager assignments, member rosters, date validation, and progress tracking.
 - **Active User Integrity Enforcement:** Deactivated users are blocked from new assignments across projects, tasks, and team rosters, while historical contributions are preserved with visual status badges.
@@ -44,11 +72,11 @@ The platform is designed with a **Dark Blue (`#0a192f`) and White (`#ffffff`)** 
 - **Notification System:** In-app unread notification bell with mark-as-read and mark-all-read capabilities.
 - **Live Visual Analytics:** Interactive charts powered by Recharts (Tasks by Status, Tasks by Priority, Projects Breakdown, and Velocity/Health indicators).
 - **Full-Text Search, Multi-Filter & Pagination:** Instant keyword search and multi-criteria filtering across projects, tasks, members, and audit logs with responsive pagination controls.
-- **Interactive OpenAPI / Swagger Documentation:** Built-in interactive API explorer and complete REST documentation.
+- **Interactive OpenAPI / Swagger Documentation:** Built-in interactive API explorer and complete REST documentation at `/api/docs`.
 
 ---
 
-## 3. User Roles & Permissions
+## 6. User Roles & Permissions
 
 KnowTheTask implements strict, backend-enforced Role-Based Access Control (RBAC):
 
@@ -77,7 +105,7 @@ KnowTheTask implements strict, backend-enforced Role-Based Access Control (RBAC)
 
 ---
 
-## 4. Technology Stack
+## 7. Technology Stack
 
 - **Frontend:**
   - [React.js](https://react.dev/) (v18.3.1)
@@ -100,14 +128,7 @@ KnowTheTask implements strict, backend-enforced Role-Based Access Control (RBAC)
   - [PostgreSQL](https://www.postgresql.org/) (pg v8.13.3)
   - Embedded PostgreSQL fallback (`embedded-postgres` v18.4.0)
 
-- **Authentication & Security:**
-  - JSON Web Tokens (JWT) with configurable expiration
-  - Cryptographic Salt Hashing (bcrypt, 10 rounds)
-  - SQL Injection Prevention (Parameterized Queries)
-  - Cross-Site Scripting (XSS) Sanitization
-
-- **API Architecture & Documentation:**
-  - RESTful Architecture
+- **API Documentation:**
   - OpenAPI 3.0 / Swagger UI ([http://localhost:5001/api/docs](http://localhost:5001/api/docs))
 
 - **Version Control:**
@@ -115,84 +136,72 @@ KnowTheTask implements strict, backend-enforced Role-Based Access Control (RBAC)
 
 ---
 
-## 5. Project Structure
+## 8. System Architecture
+
+```
+┌────────────────────────────────────────────────────────┐
+│                   PRESENTATION TIER                    │
+│           React.js Single Page Application             │
+│   (Vite, TailwindCSS, Recharts, Lucide Icons, Axios)   │
+└───────────────────────────┬────────────────────────────┘
+                            │ HTTPS / JSON REST API
+                            │ Authorization: Bearer <JWT>
+┌───────────────────────────▼────────────────────────────┐
+│                    APPLICATION TIER                    │
+│             Node.js / Express.js REST API              │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ Middleware: CORS, Auth Guards, Error Handling    │  │
+│  ├──────────────────────────────────────────────────┤  │
+│  │ Controllers: Auth, Projects, Tasks, Users, etc.   │  │
+│  ├──────────────────────────────────────────────────┤  │
+│  │ Services: Notification, Activity, Swagger Docs   │  │
+│  └────────────────────────┬─────────────────────────┘  │
+└───────────────────────────┼────────────────────────────┘
+                            │ Parameterized SQL Queries
+┌───────────────────────────▼────────────────────────────┐
+│                       DATA TIER                        │
+│                  PostgreSQL Database                   │
+│  ┌──────────┬──────────────┬──────────────┬─────────┐  │
+│  │  users   │   projects   │project_memb. │  tasks  │  │
+│  ├──────────┼──────────────┼──────────────┼─────────┤  │
+│  │ comments │activity_logs │notifications │ indexes │  │
+│  └──────────┴──────────────┴──────────────┴─────────┘  │
+└────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 9. Project Structure
 
 ```
 KnowTheTask/
 ├── client/                               # Frontend Single Page Application (React + Vite)
-│   ├── public/                           # Static assets
 │   ├── src/
-│   │   ├── components/                   # Reusable components
-│   │   │   ├── Navbar.jsx                # Top navigation with user badge & notification bell
-│   │   │   ├── Sidebar.jsx               # Role-aware sidebar navigation links
-│   │   │   ├── StatCard.jsx              # Reusable metric card with trend indicators
-│   │   │   ├── Pagination.jsx            # Reusable pagination component
-│   │   │   └── ProtectedRoute.jsx        # Route authorization guard
-│   │   ├── context/                      # React Context providers
-│   │   │   └── AuthContext.jsx           # Global user authentication & role state
+│   │   ├── components/                   # Reusable UI components (Navbar, Sidebar, StatCard, etc.)
+│   │   ├── context/                      # React Context providers (AuthContext)
 │   │   ├── hooks/                        # Custom React hooks (useAuth)
-│   │   ├── layouts/                      # Layout wrappers
-│   │   │   └── DashboardLayout.jsx       # Standard dashboard shell with sidebar & header
-│   │   ├── pages/                        # View pages
-│   │   │   ├── LoginPage.jsx             # Role-selection login interface
-│   │   │   ├── DashboardPage.jsx         # Role-based dashboard with KPIs
-│   │   │   ├── ProjectsPage.jsx          # Project directory, filters & modals
-│   │   │   ├── ProjectDetailsPage.jsx    # Project overview, members & tasks
-│   │   │   ├── TasksPage.jsx             # Task list & Kanban drag-and-drop board
-│   │   │   ├── TaskDetailsPage.jsx       # Task modal/detail with comments & activity log
-│   │   │   ├── UsersPage.jsx             # Admin member management (activate/deactivate)
-│   │   │   ├── NotificationsPage.jsx     # User notification center
-│   │   │   └── AnalyticsPage.jsx         # Interactive charts & velocity analytics
-│   │   ├── routes/                       # Routing configuration
-│   │   │   └── AppRoutes.jsx             # Route definitions with access controls
-│   │   ├── services/                     # API communication layer
-│   │   │   ├── api.js                    # Axios instance with auth interceptor
-│   │   │   ├── authService.js            # Authentication endpoints
-│   │   │   └── dataService.js            # Projects, tasks, members, comments, logs
-│   │   ├── utils/                        # Formatting utilities (roles, dates, statuses)
-│   │   ├── App.jsx                       # Root application component
-│   │   ├── index.css                     # Tailwind CSS directives & custom styling
-│   │   └── main.jsx                      # Vite entry point
+│   │   ├── layouts/                      # Layout wrappers (DashboardLayout)
+│   │   ├── pages/                        # View pages (LoginPage, ProjectsPage, TasksPage, etc.)
+│   │   ├── routes/                       # Routing configuration (AppRoutes)
+│   │   ├── services/                     # Axios API services (authService, dataService)
+│   │   └── utils/                        # Formatting utilities (roles, dates, statuses)
 │   ├── index.html                        # HTML template
 │   ├── package.json                      # Client dependencies & scripts
-│   ├── tailwind.config.js                # Tailwind theme customization
+│   ├── tailwind.config.js                # Tailwind theme configuration
 │   └── vite.config.js                    # Vite bundler configuration & proxy
 │
 ├── server/                               # Backend REST API Server (Node.js + Express)
 │   ├── src/
-│   │   ├── config/                       # Database connection configuration
-│   │   │   └── db.js                     # PostgreSQL connection pool with embedded fallback
-│   │   ├── controllers/                  # Request handlers
-│   │   │   ├── authController.js         # Login, verification & user profiles
-│   │   │   ├── projectController.js      # Project CRUD & team assignments
-│   │   │   ├── taskController.js         # Task CRUD, status updates & assignments
-│   │   │   ├── userController.js         # User directory & deactivation/reactivation
-│   │   │   ├── commentController.js      # Task comments & discussion threads
-│   │   │   ├── activityController.js     # Audit logging retrieval
-│   │   │   ├── notificationController.js # In-app notifications & read states
-│   │   │   └── analyticsController.js    # Metric aggregations for Recharts
-│   │   ├── middleware/                   # Express middleware
-│   │   │   ├── authMiddleware.js         # JWT verification & req.user attachment
-│   │   │   ├── roleMiddleware.js         # Role-based endpoint guards
-│   │   │   ├── validatorMiddleware.js    # express-validator result handler
-│   │   │   └── errorHandler.js           # Centralized HTTP error handler
-│   │   ├── routes/                       # Express route modules
-│   │   │   ├── authRoutes.js             # /api/auth
-│   │   │   ├── projectRoutes.js          # /api/projects
-│   │   │   ├── taskRoutes.js             # /api/tasks
-│   │   │   ├── userRoutes.js             # /api/users
-│   │   │   ├── commentRoutes.js          # /api/comments
-│   │   │   ├── activityRoutes.js         # /api/activity
-│   │   │   ├── notificationRoutes.js     # /api/notifications
-│   │   │   ├── analyticsRoutes.js        # /api/analytics
-│   │   │   └── docsRoutes.js             # /api/docs (OpenAPI Swagger UI)
-│   │   ├── utils/                        # Helper scripts & database seeders
-│   │   │   ├── dbSetup.js                # DB schema & seed execution script
-│   │   │   └── tokenUtils.js             # JWT generation & verification
+│   │   ├── config/                       # Database connection configuration (db.js)
+│   │   ├── controllers/                  # Request controllers (auth, project, task, user, etc.)
+│   │   ├── middleware/                   # Express middleware (auth, role, validator, errorHandler)
+│   │   ├── routes/                       # Express route modules (/api/*)
+│   │   ├── services/                     # Services (activityService, notificationService)
+│   │   ├── utils/                        # Helper scripts & database seeders (dbSetup, jwt)
 │   │   ├── validators/                   # express-validator schemas
 │   │   └── index.js                      # Express server entry point
 │   ├── package.json                      # Server dependencies & scripts
-│   └── .env.example                      # Server environment variable template
+│   └── .env.example                      # Server environment template
 │
 ├── database/                             # Database DDL & Data Initialization
 │   ├── schema.sql                        # PostgreSQL table creation & index definitions
@@ -202,6 +211,7 @@ KnowTheTask/
 ├── docs/                                 # Project & Technical Documentation
 │   ├── API_DOCUMENTATION.md              # REST API specification & schemas
 │   ├── ARCHITECTURE.md                   # System architecture & security models
+│   ├── ER-DIAGRAM.md                     # Entity-Relationship diagram
 │   ├── PROJECT-DOCUMENTATION.md          # College / Academic project report
 │   └── TEST-CASES.md                     # QA test case verification matrix
 │
@@ -214,7 +224,8 @@ KnowTheTask/
 │   ├── testRoleVisibility.js             # RBAC visibility test suite
 │   ├── testPhase2.js                     # Projects & tasks verification suite
 │   ├── testPhase3.js                     # Members, Kanban, comments & notifications suite
-│   └── testPhase4.js                     # Active user validation, search, pagination suite
+│   ├── testPhase4.js                     # Active user validation, search, pagination suite
+│   └── testInactiveUserFinal.js          # Inactive user lifecycle verification script
 │
 ├── .env.example                          # Root environment template
 ├── .gitignore                            # Git exclusion rules
@@ -224,7 +235,40 @@ KnowTheTask/
 
 ---
 
-## 6. Installation Instructions
+## 10. Database Information
+
+The PostgreSQL database comprises exactly 7 relational tables:
+1. `users` — User profiles, roles (`ADMIN`, `PROJECT_MANAGER`, `TEAM_MEMBER`), password hashes, and active flags.
+2. `projects` — Projects, manager foreign keys, dates, and statuses.
+3. `project_members` — Junction table establishing many-to-many relationships between projects and team members.
+4. `tasks` — Tasks, project references, assignee references, statuses, priorities, and deadlines.
+5. `comments` — Threaded comments associated with specific tasks and author references.
+6. `activity_logs` — System-wide audit log tracking actions, actors, and referenced entities.
+7. `notifications` — In-app alerts, recipient references, read states, and timestamps.
+
+*(Refer to `docs/ER-DIAGRAM.md` for complete schema definitions, data types, and the Mermaid ER diagram).*
+
+---
+
+## 11. Authentication
+- **Mechanism:** Stateless JSON Web Tokens (JWT) signed with HMAC-SHA256.
+- **Password Security:** Salted cryptographic password hashing via `bcryptjs` (10 salt rounds).
+- **Role Verification:** Submitted role is validated against the user's verified role in PostgreSQL; mismatches return HTTP `403 Forbidden`.
+- **Session Continuity:** The client dispatches tokens via the `Authorization: Bearer <token>` header, verified on every request.
+
+---
+
+## 12. API Documentation (Swagger / OpenAPI)
+
+KnowTheTask includes an embedded, interactive OpenAPI 3.0 documentation interface:
+
+- **Swagger UI URL:** [http://localhost:5001/api/docs](http://localhost:5001/api/docs)
+- **OpenAPI JSON Spec:** [http://localhost:5001/api/docs/swagger.json](http://localhost:5001/api/docs/swagger.json)
+- **Markdown Specification:** [`docs/API_DOCUMENTATION.md`](docs/API_DOCUMENTATION.md)
+
+---
+
+## 13. Installation
 
 ### Prerequisites
 - **Node.js**: v18.0.0 or higher
@@ -244,19 +288,10 @@ KnowTheTask/
    ```bash
    npm run install:all
    ```
-   *Or install individually:*
-   ```bash
-   # Server dependencies
-   cd server && npm install
-
-   # Client dependencies
-   cd ../client && npm install
-   cd ..
-   ```
 
 ---
 
-## 7. Environment Variables
+## 14. Environment Variables
 
 Create `.env` files from `.env.example` in both the root and `server` directories:
 
@@ -268,29 +303,16 @@ cp client/.env.example client/.env
 
 ### Server Configuration (`server/.env`):
 ```env
-# Server Port
 PORT=5001
-
-# Allowed Frontend Client Origin for CORS
 CLIENT_URL=http://localhost:5173
-
-# PostgreSQL Database Connection URL
-# Format: postgresql://<user>:<password>@<host>:<port>/<dbname>
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/knowthetask
-
-# JSON Web Token Secret (Use min. 32 characters in production)
 JWT_SECRET=super_secret_knowthetask_jwt_key_2026_very_secure_string_min_32_chars
-
-# JWT Expiration Lifetime
 JWT_EXPIRES_IN=7d
 ```
 
 ### Client Configuration (`client/.env`):
 ```env
-# Backend API Base URL (leave blank in development to use Vite proxy)
 VITE_API_URL=
-
-# Swagger UI Documentation URL
 VITE_DOCS_URL=http://localhost:5001/api/docs
 ```
 
@@ -299,7 +321,7 @@ VITE_DOCS_URL=http://localhost:5001/api/docs
 
 ---
 
-## 8. Database Setup & Seeding
+## 15. Database Setup & Seeding
 
 KnowTheTask ships with automated database initialization:
 
@@ -308,22 +330,11 @@ cd server
 npm run db:setup
 ```
 
-### What this does:
-1. Connects to PostgreSQL using `DATABASE_URL`. If no external PostgreSQL instance is reachable, it automatically spins up an embedded instance on port `5433`.
-2. Executes `database/schema.sql` to construct the 7 core tables:
-   - `users`
-   - `projects`
-   - `project_members`
-   - `tasks`
-   - `comments`
-   - `activity_logs`
-   - `notifications`
-3. Applies database constraints, foreign keys, unique indices, and performance indexes.
-4. Executes `database/seed.sql` to populate default accounts with bcrypt-hashed passwords, initial projects, and sample tasks.
+This applies `database/schema.sql` (creating all 7 tables and indexes) and `database/seed.sql` (populating default accounts, initial projects, and sample tasks).
 
 ---
 
-## 9. Running the Application
+## 16. Running Locally
 
 ### Development Mode (Concurrent)
 From the project root:
@@ -348,54 +359,11 @@ npm run dev
 # Vite dev server running at http://localhost:5173
 ```
 
-### Accessing the Application:
-- **Web Application:** [http://localhost:5173](http://localhost:5173)
-- **API Server:** [http://localhost:5001](http://localhost:5001)
-- **Interactive Swagger Docs:** [http://localhost:5001/api/docs](http://localhost:5001/api/docs)
-
 ---
 
-## 10. API Documentation (Swagger / OpenAPI)
+## 17. Testing
 
-KnowTheTask features an embedded, interactive OpenAPI 3.0 documentation interface:
-
-- **Swagger UI URL:** [http://localhost:5001/api/docs](http://localhost:5001/api/docs)
-- **OpenAPI JSON Spec:** [http://localhost:5001/api/docs/swagger.json](http://localhost:5001/api/docs/swagger.json)
-- **Markdown Specification:** [`docs/API_DOCUMENTATION.md`](docs/API_DOCUMENTATION.md)
-
-### Key Endpoints Overview
-
-| Module | Method | Endpoint | Auth | Role Restrictions |
-|---|---|---|:---:|---|
-| **Auth** | `POST` | `/api/auth/login` | No | Public |
-| **Auth** | `GET` | `/api/auth/me` | Yes | All Roles |
-| **Users** | `GET` | `/api/users` | Yes | All Roles (Admin filtered for non-admins) |
-| **Users** | `PATCH` | `/api/users/:id/status` | Yes | Admin Only |
-| **Projects** | `GET` | `/api/projects` | Yes | Role-filtered |
-| **Projects** | `POST` | `/api/projects` | Yes | Admin, Project Manager |
-| **Projects** | `GET` | `/api/projects/:id` | Yes | Authorized users |
-| **Projects** | `PUT` | `/api/projects/:id` | Yes | Admin, Project Manager |
-| **Projects** | `DELETE`| `/api/projects/:id` | Yes | Admin Only |
-| **Tasks** | `GET` | `/api/tasks` | Yes | Role-filtered |
-| **Tasks** | `POST` | `/api/tasks` | Yes | Admin, Project Manager |
-| **Tasks** | `PUT` | `/api/tasks/:id` | Yes | Admin, Project Manager |
-| **Tasks** | `PATCH` | `/api/tasks/:id/status` | Yes | All Roles (Authorized tasks) |
-| **Tasks** | `DELETE`| `/api/tasks/:id` | Yes | Admin, Project Manager |
-| **Comments** | `GET` | `/api/comments/task/:taskId` | Yes | Authorized users |
-| **Comments** | `POST` | `/api/comments` | Yes | Authorized users |
-| **Activity** | `GET` | `/api/activity` | Yes | Role-filtered |
-| **Notifications** | `GET` | `/api/notifications` | Yes | Authenticated user |
-| **Notifications** | `PATCH` | `/api/notifications/:id/read` | Yes | Notification owner |
-| **Notifications** | `PATCH` | `/api/notifications/read-all` | Yes | Authenticated user |
-| **Analytics** | `GET` | `/api/analytics` | Yes | Role-filtered |
-
----
-
-## 11. Testing & Verification
-
-KnowTheTask includes an exhaustive test suite covering unit, integration, and security test cases.
-
-### Running Test Suites:
+KnowTheTask includes an exhaustive test suite covering unit, integration, and security test cases:
 
 ```bash
 # Phase 1 & RBAC Authentication Tests
@@ -410,15 +378,17 @@ npm run test:phase3
 
 # Phase 4 Inactive Assignment Validation, Search, Pagination & Analytics Tests
 npm run test:phase4
+
+# Final Inactive User Comprehensive Verification
+node scripts/testInactiveUserFinal.js
 ```
 
-### Comprehensive QA Test Matrix:
 The complete QA test matrix containing **66 verified test cases** is documented in:
 👉 [`docs/TEST-CASES.md`](docs/TEST-CASES.md)
 
 ---
 
-## 12. Deployment Guidelines
+## 18. Deployment
 
 ### Production Build
 Build the optimized frontend distribution bundle:
@@ -427,8 +397,8 @@ npm run build
 # Outputs minified assets to client/dist/
 ```
 
-### Deployment Architecture
-1. **Frontend Hosting (Vercel, Netlify, AWS S3 / CloudFront):**
+### Deployment Strategy
+1. **Frontend Hosting (Vercel, Netlify, Cloudflare Pages, AWS S3):**
    - Publish directory: `client/dist`
    - Build command: `npm run build`
    - Set environment variable: `VITE_API_URL=https://api.yourdomain.com`
@@ -436,21 +406,17 @@ npm run build
 2. **Backend Hosting (Render, Railway, Heroku, AWS ECS):**
    - Root directory: `server`
    - Start command: `npm start`
-   - Set environment variables:
-     - `PORT=5001`
-     - `CLIENT_URL=https://yourdomain.com`
-     - `DATABASE_URL=postgresql://user:pass@host:5432/dbname?sslmode=require`
-     - `JWT_SECRET=production_strong_secret_key`
+   - Set environment variables: `PORT`, `CLIENT_URL`, `DATABASE_URL`, `JWT_SECRET`
 
 3. **Managed Database (Supabase, Neon, AWS RDS PostgreSQL):**
-   - Execute `database/schema.sql` and `database/seed.sql` on the target database instance.
+   - Run `database/schema.sql` and `database/seed.sql` on target database instance.
 
-For an extensive step-by-step production setup guide, consult:
-👉 [`docs/PROJECT-DOCUMENTATION.md#14-deployment-strategy`](docs/PROJECT-DOCUMENTATION.md#14-deployment-strategy)
+For full step-by-step production setup details, consult:
+👉 [`docs/PROJECT-DOCUMENTATION.md#20-deployment`](docs/PROJECT-DOCUMENTATION.md#20-deployment)
 
 ---
 
-## 13. Screenshots
+## 19. Screenshots
 
 | Screen | Description |
 |---|---|
@@ -465,9 +431,7 @@ For an extensive step-by-step production setup guide, consult:
 
 ---
 
-## 14. Future Improvements
-
-While KnowTheTask is feature-complete and production-ready, potential roadmap enhancements include:
+## 20. Future Improvements
 - **WebSocket Push Notifications:** Real-time push updates for collaborative Kanban moves without page polling.
 - **File & Asset Attachments:** Direct file uploads (PDF, images, wireframes) stored via S3/Cloud Storage.
 - **Granular Custom Roles:** Configurable permission matrices (e.g., QA Lead, External Auditor, Client Viewer).
@@ -476,7 +440,6 @@ While KnowTheTask is feature-complete and production-ready, potential roadmap en
 
 ---
 
-## 15. License
-
+## License
 This project is licensed under the **MIT License**.
 See the [LICENSE](LICENSE) file for more information.
