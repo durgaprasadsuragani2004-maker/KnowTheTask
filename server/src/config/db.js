@@ -2,9 +2,10 @@ const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 const EmbeddedPostgres = require('embedded-postgres').default;
-require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
-require('dotenv').config(); // also loads server/.env if present
-
+require('dotenv').config({
+  path: path.resolve(__dirname, '../../../.env'),
+  override: true
+});
 const DB_PORT = parseInt(process.env.DB_PORT || '5433', 10);
 const DB_USER = process.env.DB_USER || 'postgres';
 const DB_PASSWORD = process.env.DB_PASSWORD || 'postgres';
@@ -75,7 +76,7 @@ async function startEmbeddedIfNecessary() {
 async function testConnection(connStr) {
   const testPool = new Pool({
     connectionString: connStr,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000,
   });
   try {
     const res = await testPool.query('SELECT NOW()');
